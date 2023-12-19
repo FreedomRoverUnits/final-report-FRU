@@ -56,7 +56,7 @@ Decentralized Communication, Swarm Communication, Multi-agent, ROS, Gazebo
 	\includegraphics[width=\linewidth]{hadabot_unicycle_diagram_01.jpg}
 	\caption{Graphical representation of 2D robot pose information standard to 2 wheel robots \cite{RN109}.}
 \end{figure}
-[Brittney]
+Our team's primary objective was to design a networked swarm of rovers capable of collaborative mapping, obstacle avoidance, and cooperative task execution. Our aim is to establish a foundational system that aids in Search and Rescue operations and facilitates research in multi-swarm rover technology. Presently, we've achieved success in creating rovers equipped with mapping capabilities, allowing real-time simultaneous visualization of surrounding areas within a simulation Moreover, our accomplishment includes developing these rovers at an affordable price point, under \$100 each. This cost-efficient solution stands in contrast to market offerings that typically start at \$300 for a turtle bot with a Jetson nano and increase steeply thereafter.
 
 \section{Background} 
 A plethora of elements must come together to successfully deploy a swarm of decentralized agents. Our system requires a working knowledge in both the physical and abstract. The agents are subject to their physical characteristics: i.e., their circuitry, power consumption, mechanical components, sensors, processing power, and geometry to navigate and respond to an environment. The complexity that drives cyber-physical systems is what largely makes robotics difficult. An agent must be able to function perfectly in a world with a continuous state space. Today, researchers are seeing a high degree of success with robots that incorporate mathematical and data driven modeling that leverages the superior computational capabilities of modern processors to solve complex continuous problems in robotics. 
@@ -84,23 +84,51 @@ Normally, robots use a wide range of sensors to inform themselves about the surr
 \subsection{Multi-Agent Swarm Systems} <Jordy>
 
 \section{Project Implementation}
-\subsection{Prelminary Robot Chassis}
+\subsection{Preliminary Robot Chassis}
+
+Our rover is designed with two distinct levels, both 3D-printed boards with holes to screw in different components. The upper level features the LiDAR for a clear view, with the wires going through the center of the 3D-printed board.
+On the lower level, our lithium batteries are securely attached using Velcro at the rear. The power board is positioned at the front, fastened by two of the four poles securing both levels.
+Beneath the bottom board,  two TT motors are firmly fixed to the 3D-printed board using screws, alongside encoders secured with a hot glue gun adjacent to the motors. Wires from the encoders, motors, and LiDAR are routed towards the rear, adjacent to the batteries, and connected to our power board. This central hub houses vital components such as the ESP32-wroom, IMU, and H-bridge.
+The two levels are connected using 3D-printed poles, approximately 1 ½ in in length. Additionally, a roller ball bearing is positioned at the rover's front, crucial for even weight distribution and smoother turns. Its absence previously caused calibration errors as the rover rocked back and forth during simulations.
+
 
 \subsection{Preliminary Electronics Design and Testing}
+
+
 
 \subsection{Preliminary ROS2 Robot Description Design and Simulation}
 
 \subsection{Hardware/Firmware}
 
+Our rovers are equipped with the LiDAR HLS-LFCD2, utilizing a usart-based serial connection. Procured from eBay at an approximate cost of \$40 per unit, arriving in about one month. Upon arrival, our initial objective was to validate their functionality.
+To verify functionality, we meticulously followed the instructions provided by Matthew Hogan's tutorial in \"Interesting Electronic Components \#1: HLS-LFCD2.\" This guided us through the process of interfacing the LiDAR with a Raspberry Pico, utilizing the Arduino IDE. This comprehensive procedure spanned nearly a month, involving debugging of provided code and checking hardware. Ultimately, the successful operation allowed us to generate x and y data points.
+Having verified functionality, our focus shifted towards transitioning the system's programming from C++ to C and migrating to the Espressif framework instead of the Raspberry Pico. This strategic shift was a necessity as we are utilizing ESP32-wroom as our microcontroller for each rover.
+After extensive refactoring from the Linorobot2 package, and overcoming several challenges, we achieved successful data publication from the lidar to our local host. This data facilitated real-time simulation, enabling mapping of the rover's surroundings. This accomplishment allowed us to showcase a live demonstration during our scheduled demo day.
+
+The TT Motors were bought via Amazon and arrived approximately a week after ordering, priced at approximately \$6 per wheel. Upon arrival, a visual inspection ensured there were no visible defects. Each motor featured a white rod on both ends, creating a T-shaped appearance, facilitating attachment of the wheel on one side and an encoder on the other to track rotations.
+The initial functionality test involved connecting the red wire to 5 volts and the black wire to ground, which verified proper operation for all motors. Subsequently, assessing compatibility between the microcontroller, h-bridge, and the motors involved validating directional control for forward, backward, and turning movements. Manipulating speed required utilizing PWM within the Espressif framework, which posed challenges in integrating their new PWM drivers. After encountering multiple issues, a pivot to their older PWM driver ensued, demonstrating immediate functionality and seamless integration into the primary rover code.
+
+
 \subsection{Multi-Agent Implementation with ROS2}
 
 \section{Evaluation}
+
+How effective was the LiDAR for our team? Its functionality met our project requirements by successfully extracting information from the LiDAR and transmitting it as messages to the host computer. We achieved mapping of the rover's surroundings at intervals of 1 second. For our specific project objectives, it fulfilled its designated tasks precisely and efficiently.
+Regarding the performance of the Old PWM Driver, it efficiently regulated motor speed by managing the duty cycle. Implementing this older driver proved simpler compared to adopting the newer PWM library within Espressif.
+As for the USART pins on the microcontroller, they functioned suitably by facilitating the transmission and reception of data from the LiDAR. However, improved documentation would have been beneficial, as the process involved a considerable amount of trial and error to identify the correct USART pins for our purposes.
+
 
 \subsection{Conclusion}
 
 \subsection{Appendices}
 
 \section{Discoveries and Pitfalls}  
+
+Transitioning the lidar code base from C++ to C posed significant challenges, primarily due to the use of a different microcontroller with an entirely distinct framework. While working on the Pico, the capability to read a single byte at a time was feasible. However, transitioning to the Espressif framework posed a problem as it inherently reads multiple bytes, lacking the option to read singular bytes using USART. Also, identifying available USART pins on the microcontroller involved substantial trial and error.
+However, implementing the lidar onto the microcontroller presented numerous difficulties. The initial challenge surfaced as a watchdog warning during the first trial, triggered because the main system lacked resources to oversee its overall functionality, attributable to a while loop that didn't stop. The remedy involved incorporating a delay of 5 ticks at the end of the loop, to allow the system to check it’s status.
+Subsequently, encountering issues while retrieving the complete stack of data from the lidar became apparent. Although we were receiving information from the serial line, our code expected the first byte read was the start of the frame, which was consistent only when starting the LiDAR to send data. After a while, the alignment in data we were reading was inconsistent. The solution to ensure consistent data framing,was to forcefully sending the character 'b', which is used to start sending data to the microcontroller. This was called in the polling method within our code.
+Further complexity arose when attempting to publish lidar data to our local host computer. It was able to publish data in it’s own project folder, however integration into our primary project file alongside other components resulted in system to fail. The underlying issue stemmed from microROS, which imposed a limit on node creation set by a configuration file. After extensive research lasting 2-3 weeks, the solution emerged: modifying the configuration file to allow for 3 nodes instead of the prior limit of 2, resolving the integration hurdle.
+
 
 \nocite{*}
 \bibliographystyle{ieeetran}
