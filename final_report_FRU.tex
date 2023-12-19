@@ -52,10 +52,6 @@ Decentralized Communication, Swarm Communication, Multi-agent, ROS, Gazebo
 \end{IEEEkeywords}
 
 \section{Introduction}
-\begin{figure}
-	\includegraphics[width=\linewidth]{hadabot_unicycle_diagram_01.jpg}
-	\caption{Graphical representation of 2D robot pose information standard to 2 wheel robots \cite{RN109}.}
-\end{figure}
 [Brittney]
 
 \section{Background} 
@@ -69,9 +65,17 @@ One notable platform is the TurtleBot 3, a popular open-source robot platform wi
 	\includegraphics[width=\linewidth]{odometry_error.jpg}
 	\caption{Graphical representation of basic odometry error as a robot follows a reference trajectory \cite{RN206}.}
 \end{figure}
-Normally, robots use a wide range of sensors to inform themselves about the surrounding environment. Our agents, for example, rely on a 6 axis inertial measurement unit (IMU) and rotatory encoders to produce an \{$X$, $Y$, $\theta$, $\dot{X}$, $\dot{Y}$, $\dot{\theta}$, $\ddot{X}$, $\ddot{Y}$\} state configuration at every time step by considering physical properties and mechanics (Fig. 1). However, a frequent problem with using rudimentary techniques solely for odometry is that error propagated at each time step due to environmental conditions, sensor specifications, electrical noise, and rounding error can deviate a naive agent during localization. The problem persists even with the use of a known map and highly accurate sensors. Consider how a human might traverse a city by using a map. The human could ensure their own position by simply pondering their place in respect to features of the map like buildings, intersections, or street signs. Even if the human absent mindlessly navigated the city, they could triangulate their location by simply calculating their positions based on observations (such as the coffee shop across the street). Our robots, incorporate a Kalman ExFor an agent, SLAM leverages known knowledge of poses at past time steps and emissions or observations (sensor readings) made as the agent accumulates error through basic odometry to calculate probabilities of where the agent can be in space. Any number of sensors that detect 'emissions' from the environment can be used for SLAM; however, 2D lidar and cameras are regularly used for the high degree of precision awarded. Agents are capable of both learning a new environment and updating a known map with SLAM; thus, justifying our deployment of SLAM to improve the navigation capabilities of each agent.
+Normally, robots use a wide range of sensors to inform themselves about the surrounding environment. Our agents, for example, rely on a 6 axis inertial measurement unit (IMU) and rotatory encoders to produce an \{$X$, $Y$, $\theta$, $\dot{X}$, $\dot{Y}$, $\dot{\theta}$, $\ddot{X}$, $\ddot{Y}$\} state configuration at every time step by considering physical properties and mechanics (Fig. 1). However, a frequent problem with using rudimentary techniques solely for odometry is that error propagated at each time step due to environmental conditions, sensor specifications, electrical noise, and rounding error can deviate a naive agent during localization. Mobile robots regularly employ an Extended Kalman Filter (EKF) algorithm for state configuration estimation inferred from fused odometry sources such as rotary encoders and IMU data [CITE].
 
-\subsection{Robot Kinematics} <Jordy>
+Odometry error propagates throughout the entire run-time of a robot which can lead to poor real-time localization and navigation. As seen in Fig. 2 above, over time, a robot that relies solely on wheel odometry will eventually delineate from its target trajectory. 2WD robots often only consider the angular velocity in the yaw from IMU sources to fuse with the wheel odometry. Furthermore, a 2D state space is normally assumed to reduce the complexity of the robot's kinematics and to offset the error of approximated angular velocity by the odometry. Localization via EKF can become more reliable with more sources of odometry. However, the problem with error persists even with the use of a known map and highly accurate sensors.
+
+Consider how a human might traverse a city by using a map. The human could ensure their own position by simply pondering their place in respect to features of the map like buildings, intersections, or street signs. Even if the human absent mindlessly navigated the city, they could triangulate their location by simply calculating their positions based on observations (such as the coffee shop across the street). For an agent, SLAM leverages known knowledge of poses at past time steps and emissions or observations (sensor readings) made as the agent accumulates error through basic odometry to calculate probabilities of where the agent can be in space. One can think of a pose as the transformations needed to get from the previous state configuration to the current. Any number of sensors that detect 'emissions' from the environment can be used for SLAM; however, 2D lidar and cameras are regularly used for the high degree of precision awarded. Agents are capable of both learning a new environment and updating a known map with SLAM; thus, justifying our deployment of SLAM to improve the navigation capabilities of each agent.
+
+\subsection{Robot Kinematics}
+\begin{figure}
+	\includegraphics[width=\linewidth]{hadabot_unicycle_diagram_01.jpg}
+	\caption{Graphical representation of 2D robot state configuration standard to 2 wheel differential robots \cite{RN109}.}
+\end{figure}
 
 \subsection{ROS2 and Open Source Frameworks} <Jordy>
 
