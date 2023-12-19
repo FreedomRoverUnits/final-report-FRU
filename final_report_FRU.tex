@@ -136,9 +136,9 @@ Regarding the performance of the Old PWM Driver, it efficiently regulated motor 
 As for the USART pins on the microcontroller, they functioned suitably by facilitating the transmission and reception of data from the LiDAR. However, improved documentation would have been beneficial, as the process involved a considerable amount of trial and error to identify the correct USART pins for our purposes.
 
 
-\subsection{Conclusion}
+\section{Conclusion}
 
-\subsection{Appendices}
+\section{Appendices}
 
 \section{Discoveries and Pitfalls}  
 During the refactoring from Arudino/C++ to Espressif/C, the Microros libraries for Arduino are surprisingly very similar, and the developers did well at keeping the name of function calls to Macros and functionality. Unfortunately, there are differences that need mentioning. In the Arduino Microros, runtime variables do not need to be initialized, but in the Espressif and C it is required before use. Here is an example where in Arduino you would only need the second line, but in C you need the two:
