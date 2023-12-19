@@ -10,6 +10,8 @@
 \usepackage{array}
 \usepackage[section]{placeins}
 \usepackage{float}
+\usepackage{listings}
+
 
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
@@ -89,7 +91,7 @@ Normally, robots use a wide range of sensors to inform themselves about the surr
 Our rover is designed with two distinct levels, both 3D-printed boards with holes to screw in different components. The upper level features the LiDAR for a clear view, with the wires going through the center of the 3D-printed board.
 On the lower level, our lithium batteries are securely attached using Velcro at the rear. The power board is positioned at the front, fastened by two of the four poles securing both levels.
 Beneath the bottom board,  two TT motors are firmly fixed to the 3D-printed board using screws, alongside encoders secured with a hot glue gun adjacent to the motors. Wires from the encoders, motors, and LiDAR are routed towards the rear, adjacent to the batteries, and connected to our power board. This central hub houses vital components such as the ESP32-wroom, IMU, and H-bridge.
-The two levels are connected using 3D-printed poles, approximately 1 ½ in in length. Additionally, a roller ball bearing is positioned at the rover's front, crucial for even weight distribution and smoother turns. Its absence previously caused calibration errors as the rover rocked back and forth during simulations.
+The two levels are connected using 3D-printed poles, approximately 1½" in length. Additionally, a roller ball bearing is positioned at the rover's front, crucial for even weight distribution and smoother turns. Its absence previously caused calibration errors as the rover rocked back and forth during simulations.
 
 
 \subsection{Preliminary Electronics Design and Testing}
@@ -120,15 +122,101 @@ As for the USART pins on the microcontroller, they functioned suitably by facili
 
 \subsection{Conclusion}
 
-\subsection{Appendices}
+
 
 \section{Discoveries and Pitfalls}  
 
 Transitioning the lidar code base from C++ to C posed significant challenges, primarily due to the use of a different microcontroller with an entirely distinct framework. While working on the Pico, the capability to read a single byte at a time was feasible. However, transitioning to the Espressif framework posed a problem as it inherently reads multiple bytes, lacking the option to read singular bytes using USART. Also, identifying available USART pins on the microcontroller involved substantial trial and error.
 However, implementing the lidar onto the microcontroller presented numerous difficulties. The initial challenge surfaced as a watchdog warning during the first trial, triggered because the main system lacked resources to oversee its overall functionality, attributable to a while loop that didn't stop. The remedy involved incorporating a delay of 5 ticks at the end of the loop, to allow the system to check it’s status.
-Subsequently, encountering issues while retrieving the complete stack of data from the lidar became apparent. Although we were receiving information from the serial line, our code expected the first byte read was the start of the frame, which was consistent only when starting the LiDAR to send data. After a while, the alignment in data we were reading was inconsistent. The solution to ensure consistent data framing,was to forcefully sending the character 'b', which is used to start sending data to the microcontroller. This was called in the polling method within our code.
+Subsequently, encountering issues while retrieving the complete stack of data from the lidar became apparent. Although we were receiving information from the serial line, our code expected the first byte read was the start of the frame, which was consistent only when starting the LiDAR to send data. After a while, the alignment in data we were reading was inconsistent. The solution to ensure consistent data framing,was to forcefully sending the character 'b', which is used to start sending data to the microcontroller. This was called in the polling method within our code, please refer to Appendix A line 1.
 Further complexity arose when attempting to publish lidar data to our local host computer. It was able to publish data in it’s own project folder, however integration into our primary project file alongside other components resulted in system to fail. The underlying issue stemmed from microROS, which imposed a limit on node creation set by a configuration file. After extensive research lasting 2-3 weeks, the solution emerged: modifying the configuration file to allow for 3 nodes instead of the prior limit of 2, resolving the integration hurdle.
 
+\subsection{Appendices}
+\begin{center}APPENDIX A
+\end{center}
+\begin{center}Inside the Lidar Polling Method
+\end{center}
+\begin{lstlisting}[frame=leftline, breaklines=true, numbers=left, stepnumber=1, numbersep=5pt]
+error_tx = uart_write(test_str);
+
+
+while(!successful_scan){
+    uart_read_size = uart_read(data);
+        
+    if(uart_read_size > 0){
+        sync[0] = data[0];
+        sync[1] = data[1];
+    }
+    
+    //First capture the start byte of a frame:
+    //Once start byte captured, read remaining frame into array:
+    if (sync[0] == 0xFA && sync[1] == 0xA0) {
+        frame[0] = 0xFA;
+        frame[1] = 0xA0;
+        for (int v = 2; v <= 2520; v++) {
+            frame[v] = data[v]; //copying the data from data array to frame
+        }
+        ready = true;
+    }  
+    
+    //Once frame captured, extract range/angle and convert to x/y:
+    if (ready) {
+        lidar_msg_->angle_increment = (2.0*M_PI/360.0);
+        lidar_msg_->angle_min = 0.0;
+        lidar_msg_->angle_max = 2.0 * M_PI - lidar_msg_->angle_increment;
+        lidar_msg_->range_min = 0.12;
+        lidar_msg_->range_max = 3.5;
+        
+        for (uint16_t i = 0; i < 2520; i = i + 42) {
+            if (frame[i] == 0xFA && frame[(i + 1)] == 0xA0 + (i / 42)) {                    
+                good_sets++;
+                motor_speed += (frame[i+3] << 8) + frame[i+2]; //accumlate count for avg. time increment
+                for (uint16_t j = i + 4; j < i + 40; j = j + 6) {
+                
+                    index = 6*(i/42) + (j-4-i)/6;
+
+                    uint8_t rangeA = frame[j + 2];
+                    uint8_t rangeB = frame[j + 3];
+                    uint8_t rangeC = frame[j];
+                    uint8_t rangeD = frame[j+1];
+
+                    uint16_t range = (rangeB << 8) + rangeA;
+                    uint16_t intensity = (rangeD << 8) + rangeC; 
+
+                    lidar_msg_->ranges.data[359-index] = range/1000.0;
+                    lidar_msg_->intensities.data[359-index] = intensity;
+                }
+            }
+        }
+        
+        rpms = motor_speed / good_sets / 10;
+        lidar_msg_->time_increment = (float)(1.0 / (rpms*6));
+        lidar_msg_->scan_time = lidar_msg_->time_increment * 360;
+
+        ready = false;
+        num_of_times_it_made_it++;
+        successful_scan = true;
+    }  
+    else {
+        sync[0] = 0;
+        sync[1] = 0;
+        did_not_work++;
+        }
+
+    if(did_not_work >= 5 )
+    {
+        num_reset++;
+        ESP_LOGI(TAG_LIDAR, "Number of resets of lidar: %d\n Current value of conversions: %d", num_reset, num_of_times_it_made_it);
+        vTaskDelay(5);
+        free(data);
+        return false;                      
+    }
+}
+
+free(data);
+return successful_scan;
+
+\end{lstlisting}
 
 \nocite{*}
 \bibliographystyle{ieeetran}
