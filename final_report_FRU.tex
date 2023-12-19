@@ -10,13 +10,15 @@
 \usepackage{array}
 \usepackage[section]{placeins}
 \usepackage{float}
+\usepackage{listings}
+
 
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
 \begin{document}
 
 \begin{titlepage}
-	\title{Cheap Autonomous Rovers for Multi-Agent Applications\\
+	\title{Inexpensive Autonomous Rovers for Multi-Agent Applications\\
 		{\footnotesize \textsuperscript{*}Freedom Rover Units}
 		\thanks{}}
 
@@ -40,7 +42,6 @@
 	}
 	\maketitle
 \end{titlepage}
-
 \twocolumn
 
 \begin{abstract}
@@ -52,126 +53,298 @@ Decentralized Communication, Swarm Communication, Multi-agent, ROS, Gazebo
 \end{IEEEkeywords}
 
 \section{Introduction}
-[Brittney]
+
+Our team's primary objective was to design a networked swarm of rovers capable of collaborative mapping, obstacle avoidance, and cooperative task execution. Our aim is to establish a foundational system that aids in Search and Rescue operations and facilitates research in multi-swarm rover technology. Presently, we've achieved success in creating rovers equipped with mapping capabilities, allowing real-time simultaneous visualization of surrounding areas within a simulation. Moreover, our accomplishment includes developing these rovers at an affordable price point, under \$100 each (Fig. 6). This cost-efficient solution stands in contrast to market offerings that typically start at \$300 for a turtle bot with a Jetson nano and increase steeply thereafter.
+
 
 \section{Background} 
-A plethora of elements must come together to successfully deploy a swarm of decentralized agents. Our system requires a working knowledge in both the physical and abstract. The agents are subject to their physical characteristics: i.e., their circuitry, power consumption, mechanical components, sensors, processing power, and geometry to navigate and respond to an environment. The complexity that drives cyber-physical systems is what largely makes robotics difficult. An agent must be able to function perfectly in a world with a continuous state space. Today, researchers are seeing a high degree of success with robots that incorporate mathematical and data driven modeling that leverages the superior computational capabilities of modern processors to solve complex continuous problems in robotics. 
+A plethora of elements must come together to successfully deploy a swarm of agents. Our system requires a working knowledge in both the physical and abstract. The agents are subject to their physical characteristics: i.e., their circuitry, power consumption, mechanical components, sensors, processing power, and geometry to navigate and respond to an environment. The complexity that drives cyber-physical systems is what largely makes robotics difficult. An agent must be able to function perfectly in a world with a continuous state space. Today, researchers are seeing a high degree of success with robots that incorporate mathematical and data driven modeling that leverages the superior computational capabilities of modern processors to solve complex continuous problems in robotics. 
 \subsection{Common Robot Autonomous Platforms} Common mobile platforms for autonomous robots encompass a range of designs tailored to diverse applications within the field of robotics. Wheeled platforms, such as differential drive and omnidirectional robots, are popular choices due to their simplicity and efficiency in navigating various environments. Differential drive platforms use two powered wheels, allowing the robot to turn and move forward or backward by adjusting the speeds of the wheels. Omnidirectional platforms, on the other hand, utilize special wheel configurations to achieve unrestricted movement in any direction. Lastly, tracked platforms offer enhanced traction and stability, making them suitable for challenging terrains.
 
 One notable platform is the TurtleBot 3, a popular open-source robot platform widely used for research and education. TurtleBot 3, developed by ROBOTIS, is a compact and modular robot equipped with various sensors, including a 360-degree lidar sensor, a camera, and inertial measurement units (IMUs). Its differential drive system allows for omnidirectional movement, making it versatile for navigation in dynamic environments. The TurtleBot 3 is often employed in the development and testing of autonomous navigation algorithms, mapping techniques, and obstacle avoidance strategies. Its affordability, ease of use, and vibrant community support make it an attractive choice for researchers, students, and hobbyists interested in exploring the intricacies of autonomous robotics.
 
-\subsection{Robot Localization}
+\subsection{Robot Localization and Navigation}
 \begin{figure}
-	\includegraphics[width=\linewidth]{odometry_error.jpg}
-	\caption{Graphical representation of basic odometry error as a robot follows a reference trajectory \cite{RN206}.}
+	\includegraphics[width=\linewidth]{./figs/hadabot_unicycle_diagram_01.jpg}
+	\caption{Graphical representation of 2D robot state configuration standard to 2 wheel differential robots \cite{RN100}.}
 \end{figure}
-Normally, robots use a wide range of sensors to inform themselves about the surrounding environment. Our agents, for example, rely on a 6 axis inertial measurement unit (IMU) and rotatory encoders to produce an \{$X$, $Y$, $\theta$, $\dot{X}$, $\dot{Y}$, $\dot{\theta}$, $\ddot{X}$, $\ddot{Y}$\} state configuration at every time step by considering physical properties and mechanics (Fig. 1). However, a frequent problem with using rudimentary techniques solely for odometry is that error propagated at each time step due to environmental conditions, sensor specifications, electrical noise, and rounding error can deviate a naive agent during localization. Mobile robots regularly employ an Extended Kalman Filter (EKF) algorithm for state configuration estimation inferred from fused odometry sources such as rotary encoders and IMU data [CITE].
+Normally, robots use a wide range of sensors to inform themselves about the surrounding environment. Our agents, for example, rely on a 6 axis inertial measurement unit (IMU) and rotatory encoders to produce an \{$X$, $Y$, $\theta$, $\dot{X}$, $\dot{Y}$, $\dot{\theta}$, $\ddot{X}$, $\ddot{Y}$\} state configuration at every time step by considering physical properties and mechanics (Fig. 1). However, a frequent problem with using rudimentary techniques solely for odometry is that error propagated at each time step due to environmental conditions, sensor specifications, electrical noise, and rounding error can deviate a naive agent during localization. Mobile robots regularly employ an Extended Kalman Filter (EKF) algorithm for state configuration estimation inferred from fused odometry sources such as rotary encoders and IMU data \cite{RN102}.
 
-Odometry error propagates throughout the entire run-time of a robot which can lead to poor real-time localization and navigation. As seen in Fig. 2 above, over time, a robot that relies solely on wheel odometry will eventually delineate from its target trajectory. 2WD robots often only consider the angular velocity in the yaw from IMU sources to fuse with the wheel odometry. Furthermore, a 2D state space is normally assumed to reduce the complexity of the robot's kinematics and to offset the error of approximated angular velocity by the odometry. Localization via EKF can become more reliable with more sources of odometry. However, the problem with error persists even with the use of a known map and highly accurate sensors.
-
-Consider how a human might traverse a city by using a map. The human could ensure their own position by simply pondering their place in respect to features of the map like buildings, intersections, or street signs. Even if the human absent mindlessly navigated the city, they could triangulate their location by simply calculating their positions based on observations (such as the coffee shop across the street). For an agent, SLAM leverages known knowledge of poses at past time steps and emissions or observations (sensor readings) made as the agent accumulates error through basic odometry to calculate probabilities of where the agent can be in space. One can think of a pose as the transformations needed to get from the previous state configuration to the current. Any number of sensors that detect 'emissions' from the environment can be used for SLAM; however, 2D lidar and cameras are regularly used for the high degree of precision awarded. Agents are capable of both learning a new environment and updating a known map with SLAM; thus, justifying our deployment of SLAM to improve the navigation capabilities of each agent.
-
-\subsection{Robot Kinematics}
 \begin{figure}
-	\includegraphics[width=\linewidth]{hadabot_unicycle_diagram_01.jpg}
-	\caption{Graphical representation of 2D robot state configuration standard to 2 wheel differential robots \cite{RN109}.}
+	\includegraphics[width=\linewidth]{./figs/odometry_error.jpg}
+	\caption{Graphical representation of basic odometry error as a robot follows a reference trajectory \cite{RN101}.}
+\end{figure}
+Odometry error propagates throughout the entire run-time of a robot which can lead to poor real-time localization and navigation. As seen in Fig. 2, over time, a robot that relies solely on wheel odometry will eventually delineate from its target trajectory. 2WD robots often only consider the angular velocity in the yaw from IMU sources to fuse with the wheel odometry. Furthermore, a 2D state space is normally assumed to reduce the complexity of the robot's kinematics and to offset the error of approximated angular velocity by the odometry. Localization via EKF can become more reliable with more sources of odometry. However, the problem with error persists even with the use of a known map and highly accurate sensors.
+
+Consider how a human might traverse a city by using a map. The human could ensure their own position by simply pondering their place in respect to features of the map like buildings, intersections, or street signs. Even if the human absent mindlessly navigated the city, they could triangulate their location by simply calculating their positions based on observations (such as the coffee shop across the street). For an agent, SLAM leverages known knowledge of poses at past time steps and emissions/observations (sensor readings) made as the agent accumulates error through basic odometry to calculate probabilities of where the agent can be in space. One can think of a pose as the transformations needed to get from the previous state configuration to the current. Any number of sensors that detect 'emissions' from the environment can be used for SLAM; however, 2D lidar and cameras are regularly used for the high degree of precision awarded. Agents are capable of both learning a new environment and updating a known map with SLAM; thus, justifying our deployment of SLAM to improve the navigation capabilities of each agent \cite{Macenski2021}.
+\begin{figure}
+	\includegraphics[width=\linewidth]{./figs/SLAM.png}
+	\caption{SLAM simulation on a robot by the Linorobot package \cite{Linorobot}.}
+\end{figure}
+\subsection{ROS2 and Open Source Frameworks} 
+Robot Operating System 2 (ROS 2) is an open-source middleware framework designed to facilitate the development of robotic software. Building on the success of its predecessor, ROS, ROS 2 was initiated to address the limitations and enhance the capabilities of the original system. ROS 2 is developed and maintained by the Open Robotics organization, which aims to provide a flexible and robust platform for building advanced robotic systems \cite{RN200}. 
+
+The framework supports multiple programming languages, including C++, Python, and others, allowing developers to work with the language of their choice. ROS 2 fosters interoperability, scalability, and maintainability, making it well-suited for a variety of robotic platforms, from small embedded systems to large, complex robots. With its emphasis on distributed systems, real-time capabilities, and improved security, ROS 2 has become a pivotal framework in advancing the development and deployment of autonomous robots across various industries. Its active and growing community continues to contribute to its expansion and refinement, solidifying ROS 2 as a key player in the realm of robotic software development.
+
+A multitude of packages, simulation/visualization tools, software stacks, and robot interface drivers are made available. Of note, ROS2 has notable localization, SLAM, and navigation packages for mobile robots and manipulators. The combined power of free and open source industrial quality packages and the framework's data distribution service (DDS) allow for seamless implementation of new robotic models. The event driven publisher-subscriber implemented by the ROS2 DDS allow for soft RT that supports large and complex robotics projects.
+   
+\begin{figure}
+	\includegraphics[width=\linewidth]{./figs/single_robot_transformation_tree.png}
+	\caption{Transformation dependency tree of the FRU-bot.}
+\end{figure}
+\subsection{Robot Description and Transformation Trees}
+
+In ROS, robot descriptions play a pivotal role in defining the physical characteristics and kinematics of a robotic system. Robot descriptions are typically represented using the Unified Robot Description Format (URDF) or the Robot Description Format (SDF). These XML-based formats allow developers to specify the robot's geometry, joint properties, sensor configurations, and other essential details. 
+
+The robot description serves as a crucial component for simulation, motion planning, and control within the ROS framework. It provides a comprehensive and standardized way to encapsulate the robot's structural and dynamic properties, enabling seamless integration with various ROS tools and libraries. This description becomes particularly valuable in the context of robotic simulations, where developers can accurately model and visualize the robot's behavior before deploying it to physical hardware. The clarity and consistency offered by well-defined robot descriptions in ROS contribute to the framework's effectiveness in fostering collaborative and interoperable development across diverse robotic applications.
+
+Sensor noise distributions, world friction parameters, sensor specifications (lidar range and resolution eg), and available kinematic controllers (and more) are definable via the robot description. ROS uses the URDF to calculate transformations vital for robot localization and navigation. These transformation dependencies are sensitive to noisy sensor readings and lack of odometry sources, and require that the robot node network is dutifully designed. Robot name-spaces and frame ID prefixes are often invoked to isolate nodes on a particular robot or to separate frame-IDs delegations for the robot state publishers respectively. 
+
+\subsection{Gazebo for Robot Simulation}
+
+Gazebo is a powerful physics simulation environment for simulating robotic systems. Developed by the Open Source Robotics Foundation, Gazebo provides a dynamic and realistic 3D simulation platform for testing and validating robotic algorithms, control strategies, and system behaviors. It supports the simulation of various sensor inputs, physics-based interactions, and complex robotic scenarios, offering an invaluable tool for researchers, developers, and engineers working on robotic projects. 
+
+Gazebo enables the deployment of detailed robot models and their environments, allowing users to simulate and visualize robot movements and interactions before deploying code to physical hardware \cite{RN104}. Its integration with the Robot Operating System (ROS) further enhances its utility, facilitating seamless communication between simulated robots and other ROS-enabled components. Gazebo's flexibility, extensibility, and open-source nature make it a widely adopted tool in the robotics community, fostering innovation, collaboration, and the efficient development of robotic systems \cite{RN201}.
+
+\subsection{Multi-Agent Swarm Systems}
+Collaborative robots in the context of ROS involve the coordination and collaboration of multiple robots or agents working together to achieve common objectives. ROS provides a flexible and modular framework for developing and implementing multi-agent systems, allowing for the seamless integration of individual robotic entities into a cohesive network. One key advantage of using ROS for multi-agent systems is its robust communication infrastructure, which enables efficient exchange of information among agents. The publish-subscribe model in ROS facilitates inter-agent communication, allowing robots to share sensor data, coordinate movements, and collectively solve complex tasks.
+
+In a multi-agent ROS environment, each robot typically runs its own instance of ROS, allowing for decentralized control and decision-making. This decentralized approach enhances system scalability and fault tolerance, as the failure of one agent does not necessarily disrupt the entire system. ROS facilitates the creation of custom message types and services, enabling agents to communicate specific information tailored to the multi-agent system's requirements. This adaptability is crucial in scenarios where diverse robotic platforms with varying capabilities need to collaborate, such as in search and rescue missions or swarm robotics applications.
+
+The integration of multi-agent systems with ROS also extends to simulation capabilities. Gazebo, allows developers to model and simulate multiple robots simultaneously. This capability is instrumental in testing and refining multi-agent algorithms, ensuring their effectiveness in real-world scenarios. Given the complexity of node dependency graphs for MAS, the ability to debug, test, and validate simulated system networks and algorithms is monumental to decreasing overall development time and wear/tear on the physical robots. 
+\section{Project Implementation}
+\begin{figure}
+	\includegraphics[width=\linewidth]{./figs/Build_fig.png}
+	\caption{Parts of FRU-bot, including the chassis, wheels, and electronics on the left. The final build of FRU-bot on the right.}
+\end{figure}
+\subsection{Preliminary Robot Chassis}
+
+Our rover is designed with two distinct levels, both 3D-printed boards with holes to screw in different components. The upper level features the LiDAR for a clear view, with the wires going through the center of the 3D-printed board.
+On the lower level, our lithium batteries are securely attached using Velcro at the rear. The power board is positioned at the front, fastened by two of the four poles securing both levels.
+Beneath the bottom board,  two TT motors are firmly fixed to the 3D-printed board using screws, alongside encoders secured with a hot glue gun adjacent to the motors. Wires from the encoders, motors, and LiDAR are routed towards the rear, adjacent to the batteries, and connected to our power board. This central hub houses vital components such as the ESP32-wroom, IMU, and H-bridge.
+
+The two levels are connected using 3D-printed poles, approximately 1½" in length. Additionally, a roller ball bearing is positioned at the rover's front, crucial for even weight distribution and smoother turns. Its absence previously caused calibration errors as the rover rocked back and forth during testing.
+\begin{figure}[H]
+	\includegraphics[width=\linewidth]{./figs/parts.png}
+	\caption{Breakdown of part costs per FRU-bot rover.}
+\end{figure}
+\subsection{Preliminary Electronics Design and Testing}
+One of the hardware considerations is what board will run the rover firmware. Luckily, the choice of using ROS2 and Mircoros narrowed the choices down substantially. Microros provides a list of supported development boards. These boards range from Arduino, STM32, and Teenys to ESP32. Looking through the list of specific boards, it quickly became apparent that many were out of the budget. To give an idea, the two cheapest boards are the Raspberry Pi Pico (averages a cost of 6 dollars) and the ESP32-DevKitC-32UE/E (10 dollars). While the next cheapest board is the Teensy 4.1, which clocks in at about 30 dollars per board (a heavy price increase). With the choice coming down to either the Pi Pico or the ESP32, the final choice is ESP32 since it has WiFi built within the chip and is an entirely new option for experimenting. ESP32 developers, Espressif, drivers for I2C, UART, PWM, and ADC. These drivers are essential for interfacing with the sensor to determine pose.
+
+For the rovers to fully function, they must take advantage of odometry, kinematics, and PID. To handle these calculations, the feedback/data from wheel movement and inertial acceleration allows for deriving the rover's pose. The infrared rotary encoder provides feedback to determine the speed of each motor, handling PID, and parts of odometry/kinematics. DAOKI offers a Slotted Optical IR encoder that is within the budget and a part that attaches itself to the TT motors for easier reading of motor speed. Although this encoder provides feedback, it is not enough to accurately determine the rover's pose, which is why the MPU 6050 gives us additional information for deriving the accuracy of its movement by measuring inertial acceleration. Between the MPU6050 and the DAOKI encoder's pose, odometry, kinematics, and PID are accurate enough to serve the parameters of the project. Now, concerning SLAM we could stick with just those two sensors, but the mapping and location would not be satisfactorily accurate without a lidar sensor. Our rovers feature the LiDAR HLS-LFCD2, LiDAR, an acronym for Light Detection and Ranging, utilizes light pulses to gauge distances from its location. To interface with the LiDAR, we use a serial connection to the microcontroller, where data received undergoes conversion to extract ranges and intensities. The processed data are then transformed into Laser Scan messages and relayed to the host computer. On the host side, this information serves as pivotal input for simulating a detailed map reflecting the rover's surroundings. This simulation acts as an invaluable debugging resource, ensuring alignment between the rover's real-world operations and the expected functionality within the simulated environment.
+
+Testing for the hardware and sensors is divided into three steps: reference projects, ESP driver development, and testing on the ESP32 themselves. The first step for testing all sensors was finding projects/tutorials online. These tutorials offer a path to narrow down what parts of the datasheet are necessary for our interaction with the sensors. One example is the MPU6050 tutorial showing which addresses are relevant for XYZ gyro acceleration, setup for MPU before reading from those registers, along the math needed to be on the data to determine its angle. Many of these tutorials were in Arduino and meant for either the UNO or PI Pico, which the team had on hand from previous classes/projects, making the preliminary testing of seeing if the components were not defective a simple process. The next step is reshaping the tutorials into C using the Espressif drivers. Once refactored, the code is tested on the component again to ensure functionality is the same as the original testing, the new code is adjusted to fit the needs of Linorobot.
+
+\subsection{Preliminary ROS2 Robot Description Design and Simulation}
+\begin{figure}
+	\includegraphics[width=\linewidth]{./figs/rviz_sim.png}
+	\vspace{2mm}
+	\includegraphics[width=\linewidth]{./figs/gazebo_sim.png}
+	\caption{Visualization of preliminary simulated robot at the top, and the same view in the simulation gazebo environment at the bottom.}
+\end{figure}
+Originally, our team used Linorobot's "linorobot2" package to experiment with Gazebo's simulation capabilities on default parameters and robot models. Thereafter, the robot description package for linorobot2 was altered to fit the physical dimensions of FRU-bot's chassis (visual and collision geometry) and its sensor specifications: min/max lidar ranges, motor torques, update frequencies, etc. In Fig. 7, one can see the odometry direction vector depicted as a red arrow and the detected purple pillars as red dots. Furthermore, the lagging line connecting the base frame to the odometry frame can be seen trailing off the lower left hand corner of the visualized robot.
+
+Our results from preliminary testing and simulation with ROS2 facilitated eventual integration with our eventual prototype. Simulation of FRU-bot at this early stage helped establish a baseline for what the node network should look like at the later stages.
+\subsection{Hardware/Firmware}
+Linorobot is the skeleton for the hardware of our little rovers. We attempted to use the original code built on Arduino and PlatformIO, but the project started with the team developing drivers on the Espressif IDF. The issue, however, is Arduino did not have any official documentation on the supported Espressif libraries/boards. A lack of documentation and not understanding Linorobot2 on how to change/add in our drivers left us with a decision. Dive deeper into and translate the drivers into Arduino/C++ or translate the main.c file along with kinematics, odometry, and PID over to Espressif/C and make sure our drivers follow a similar structure to Linorobot’s drivers in terms of formatting Microros data. Ultimately, the team found it easier to bring over the skeleton of Linorobot than to redo the drivers.
+
+For interacting with the MPU6050, the communication protocol is I2C. The setup for the MPU is simple; a zero byte is written to the power management register before data is to be read. After writing the zero bytes, the next step is measuring the error. We are only concerned with the GyroZ register. To calculate the error, while the MPU is still and data is being sampled multiple times, the average is taken to know how much drift there is within the system. The next time the register is read, we subtract that error from the reading to get an accurate value. It is also important to note that the value read must first be divided by 131 according to the datasheet to convert the value to scale.
+
+Encoder interactions only require counting pulses. Essentially, the encoders only have three pins: power, ground, and out. Out is either high or low on whether an object is blocking the IR sensor(in our case rotary attachments to the TT Motors). To achieve RPM calculations, use a PCNT(pulse counter) peripheral to count the rising edges of the Out pin outputs. Then it is a simple problem of using the number of pulses recorded since the last sample divided by the time since the last sample (dx/dt) and converting it to an RPM. For the DAKOI attachment, twenty triggerings of the sensor represent a full rotation.
+
+Analog-digital conversions did not require too much setup, mostly calibration steps were required from the Espressif. Very little needed to be changed from the example code keeping in the relevant calibration sequence chosen, which was a linear fitting. The ADC was used to detect battery voltage; sampling was done at a voltage divider since the ADC could only do a maximum of about 3V. If the sample was less than or equal to 2 V, the overall voltage of the battery was low, and continuing usage resulted in damage to the components.
+
+The TT Motors were bought via Amazon and arrived approximately a week after ordering, priced at approximately \$6 per motor. Upon arrival, a visual inspection ensured there were no visible defects. Each motor featured a white rod on both ends, creating a T-shaped appearance, facilitating attachment of the wheel on one side and an encoder on the other to track rotations.
+The initial functionality test involved connecting the red wire to 5 volts and the black wire to ground, which verified proper operation for all motors. Subsequently, assessing compatibility between the microcontroller, h-bridge, and the motors involved validating directional control for forward, backward, and turning movements. Manipulating speed required utilizing PWM within the Espressif framework, which posed challenges in integrating their new PWM drivers. After encountering multiple issues, a pivot to their older PWM driver ensued, demonstrating immediate functionality and seamless integration into the primary rover code.
+
+Our rovers are equipped with the LiDAR HLS-LFCD2, utilizing a usart-based serial connection. Procured from eBay at an approximate cost of \$40 per unit, arriving in about one month. Upon arrival, our initial objective was to validate their functionality.
+To verify functionality, we meticulously followed the instructions provided by Matthew Hogan's tutorial in \"Interesting Electronic Components \#1: HLS-LFCD2.\" This guided us through the process of interfacing the LiDAR with a Raspberry Pico, utilizing the Arduino IDE. This comprehensive procedure spanned nearly a month, involving debugging of provided code and checking hardware. Ultimately, the successful operation allowed us to generate x and y data points.
+Having verified functionality, our focus shifted towards transitioning the system's programming from C++ to C and migrating to the Espressif framework instead of the Raspberry Pico. This strategic shift was a necessity as we are utilizing ESP32-wroom as our microcontroller for each rover.
+
+After extensive refactoring from the Linorobot2 package, and overcoming several challenges, we achieved successful data publication from the lidar to our local host. This data facilitated real-time simulation, enabling mapping of the rover's surroundings. This accomplishment allowed us to showcase a live demonstration during our scheduled demo day.
+\begin{figure}
+	\includegraphics[width=\linewidth]{./figs/sim_robot.png}
+	\caption{Visualization of final FRU-bot chassis in rviz2.}
+\end{figure}
+\subsection{ROS2 Packages for FRU-bot}
+
+Further improvements were made to our ROS packages, including complete deviation from the linorobot2 fork and major changes to the robot description, config, and launch files. In order to allow simulation and deployment of multiple robots, two strategies had to be implemented: ie, robot name-spacing and URDF frame prefixing. 
+
+Name-spacing essentially encapsulates a robot or specific processes under one name. For example, a name-space can isolate a robot's state publisher, cmd subscribers, and controller to a name. Normally, ROS publishes transformations to the "/tf" topic and sensor data to topics of format "/sensor". This approach functions well during single robot operations or when only one source of data or control is assumed. However, in more complex systems where there are multiple sources of the same sensor data or control (or multiple entities), name-spaces are usually implemented to encapsulate similar processes under the same identity (refer to Appendix D - bottom image). 
+
+Launch scripts were implemented to dynamically change configuration files and node instances at run-time (bringup.launch.py). This effectively generalized FRU-bot's configuration files; ultimately, permitting the same parameters for each robot with changes executed at run-time. Furthermore, the launch scripts allow a user to start a simulated or real FRU-bot instance with the same command. Our launch scripts feature optional execution of a robot's nodes at a specific name-space to facilitate execution of multiple robots in simulation and the real world (refer to Appendix C).
+
+Lastly, the robot description features arguments that can assign an optional name-space or frame prefix at run-time. The frame prefix grants dynamic renaming of robot frames. This is useful if the system specifications demand that the same "/tf" topic is used. For example, in order to deploy a centralized model, every agent must be aware of the other robots relative locations, this can be calculated easily when using the same transformation tree. On the other hand, the name-space argument optionally remaps simulated topics to the robot's name-space. Both were implemented, for potentially continued development in multi-agent centralized and decentralized models with FRU-bot.
+
+\begin{figure}
+	\includegraphics[width=\linewidth]{./figs/single_robot_slam_sim.png}
+	\vspace{2mm}
+	\includegraphics[width=\linewidth]{./figs/single_robot_slam.png}
+	\caption{Simulation of a name-spaced FRU-bot in the top image, and visualization of SLAM in bottom image during the same simulation session.}
 \end{figure}
 
-\subsection{ROS2 and Open Source Frameworks} <Jordy>
+\section{Evaluation}
+The IR encoders served their purpose to a usable level. The encoders can determine an RPM for PID and speed control, but with only 20 slots/encoder counts, the readings are most likely not entirely accurate. For the project and with the budget constraints they satisfy our needs. An experiment for future use is to 3D print a new attachment for the rotary piece with more slotted holes. However, issues to look out for in the future for testing more holes are whether the IR sensor can keep up / differentiate the smaller holes and whether the PCNT peripheral is able to keep up with counting the rising edges of the triggers.
 
-\subsection{Robot Description and Transformation Trees} <Jordy>
+For the IMU/MPU6050, the evaluation will fall under the same umbrella as the rotary encoders. It served the purpose of telling us the pose, but it came at the cost of drift to the point the host machine would struggle to understand/run simulations on the data being recieved. The host machine filters data to help with these issues, but it was not prepared to handle how much the data drifted from the MPU6050. As for the reason why the data was not as good as it should have been, we have one theory. When developing the driver for the MPU6050, the steps taken in reading the data and applying math to the data are similar to those in a Mechatronics tutorial \cite{RN106}. With the only significant difference being the I2C driver reading data. When running the Arduino example code there is no major drift issue, which leads us to believe that the MPU6050 is to run on a microcontroller like the UNO as opposed to one such as the ESP32 deployed in the project. When checking the error value calculated between the two boards, the values from the UNO are closer to the one reported in the tutorial than the value from the ESP32. To figure out this issue, the first step that needs testing is trying complex calibration sequences as opposed to the simple ones used by both the tutorial and Linorobot. If the different calibration sequences do not work out, the next best option is to use the MPU9050. The reason for recommending the MPU9050 as opposed to the 6050 is the Espressif example tutorial for I2C uses MPU9050 and most likely supports it better than the 6050. Meaning the MPU6050 is reliable within the Arduino framework. However, switching to the 9050 is difficult due to budgeting constraints. With the 6050 a set of 5 costs about 10 dollars, while a single 9050 is about 12 dollars.
 
-\subsection{Gazebo for Robot Simulation} <Jordy>
+How effective was the LiDAR for our team? Its functionality met our project requirements by successfully extracting information from the LiDAR and transmitting it as messages to the host computer. We achieved mapping of the rover's surroundings at intervals of 1 second. For our specific project objectives, it fulfilled its designated tasks precisely and efficiently.
 
-\subsection{Autonomous Navigation} <Jordy>
+Regarding the performance of the Old PWM Driver, it efficiently regulated motor speed by managing the duty cycle. Implementing this older driver proved simpler compared to adopting the newer PWM library within Espressif.
 
-\subsection{Multi-Agent Swarm Systems} <Jordy>
+As for the USART pins on the microcontroller, they functioned suitably for transmission and reception of data from the LiDAR. However, improved documentation would have been beneficial, as the process involved a considerable amount of trial and error to identify which USART pins were available for our purposes.
 
-\section{Scope of Project and Design}The scope/goal of the project is to create a small group(our swarm) of semi-decentralized rovers that achieve a common goal. Our swarms will consist of an aim of 3+ rovers which although does not constitute an ideal amount for a swarm, however this will be enough for a proof of concept for the future that will use a larger group of individuals. As for the common goal, the team of robots should be able to work together to put on a little synchronized dance performance or to push a block from point A to another point in space. While the concept of these rovers being decentralized means that they are able to act independently with assistance from a central leader. This now leads into the question of how these autonomous rovers are going to be made and how they will be aware of their environment.
-There are multiple ways we can get the rovers to perceive their surroundings, in the case of the project there are three options. One option is to use a 2D Light Detection and Ranging (lidar) sensor. The lidar will give the robot an image of the objects currently around it and the distance from the unit itself. With the implementation of lidar it will open up the avenue to accurately use SLAM(Simultaneous Localization and Mapping). For the actual build of the rovers the plan is to use a premade chassis for the outer shell of the robot. It will also use two stepper motors and a caster wheel to enable movement. As for powering/controlling the system, it will use a custom PCB power module for powering the different components with another custom PCB motor driver to control the stepper motors.
+On another note, full system integration with ROS2 met some resistance due to the complexity and overhead. There was considerable experimentation with optimally setting configuration parameters for the SLAM and Navigation tool-set. Furthermore, a fully debugged name-spaced launch sequence was not fully finished by demo-day. Leading to poor outcomes with SLAM and autonomous navigation. However, overall the robots functioned well given sharp deadlines and the complexity of this project. 
 
-\section{Methods and Planning}
+\section{Conclusion}
+FRU-bot required the integration of multiple software frameworks, stacks, and open source projects. Our team developed a set of open-source packages specific to FRU-bot: firmware, hardware/sensor, navigation, simulation, visualization, and deployment packages. By demo-day, each FRU-bot was cabable of SLAM and autonomous navigation; however, time constraints, noisy inexpensive sensors, and our agent communication strategy ultimately led to poor outcomes during demonstration. Furthermore, the system complexity of multiple robots overwhelmed our central station when attempting to deploy more than one robot with active SLAM features. Overall, we were able to demonstrate what an inexpensive mobile platform was capable of and the various powerful tools of the ROS2 framework. 
 
+\section{Discoveries and Pitfalls}  
+During the refactoring from Arudino/C++ to Espressif/C, the Microros libraries for Arduino are surprisingly very similar, and the developers did well at keeping the name of function calls to Macros and functionality. Unfortunately, there are differences that need mentioning. In the Arduino Microros, runtime variables do not need to be initialized, but in the Espressif and C it is required before use. Here is an example where in Arduino you would only need the second line, but in C you need the two:
 
-\subsection{Initial Timeline and Project Tasks}\label{AA}
-Most milestones will be collaborative, meaning they are not going to be directly assigned to people on the team. The only exception is the first milestone where the team members that still do not have a good understanding of ROS will work on becoming familiar with it. However, mini-milestones will be assigned as the team gets to them. An example of this is when it comes to testing parts each person will choose which part they will test. The same will go with coding aspects of the project and these assignments will be documented to keep track of who has worked on what. Here is the initial timeline for the project broken down into individual tasks:
-\begin{itemize}
-	\item May: Assemble Rover/PCB/Get Better understanding of ROS
-	\begin{itemize}
-		\item Main goal is to make the custom PCB for power module and motor drivers
-		\item Buy parts: Motor, Chassis, LiPo Battery, development boards, environment sensing parts
-		\item Test PCB and parts to make sure they are functional and understand how to interface with them
-		\item Become familiar enough with tools to begin code development
-	\end{itemize}
-	\item June: Setup ROS/Code Framework
-	\begin{itemize}
-		\item Use ROS to create initial code for the multi-agent server to assist Rovers
-		\item Also use ROS to manipulate and control motors to allow Rover to move
-		\item Begin interfacing with sensors and other components
-	\end{itemize}
-	\item July: Setup ability to see environment
-	\begin{itemize}
-		\item Setup Lidar/Computer Vision
-		\item Get Rovers to build map of their environment SLAM
-		\item Ensure rovers can move through environment without colliding
-	\end{itemize}
-	\item August: Get Rover to move in consistent manner and Implement Agent AI
-	\begin{itemize}
-		\item Finish up main part of Rover framework
-		\item Get the Rovers to move in a set pattern
-		\item Work on the AI for rovers
-	\end{itemize}
-	\item September: Setup central server/Test Communication
-	\begin{itemize}
-		\item Finish creating ROS multi-agen server
-		\item Get the server to communicate with Rovers
-		\item Test reaction time between server and Rovers
-	\end{itemize}
-	\item October: Rover will work together on a task
-	\begin{itemize}
-		\item Get Rover to push box
-		\item Get Rovers to dance around
-		\item Or get Rovers to complete another demo that is list later
-	\end{itemize}
-	\item November/December: Debug and finish up Project
-	\begin{itemize}
-		\item These are free months to use to buffer if the project falls behind or need extra time to debug
-	\end{itemize}
-\end{itemize}
-\subsection{Project Resources}
-\subsubsection{Software}
-To finish the project on time we will need to deploy the use of external tools to assist in its completion. Luckily there are many tools at disposable to get the rovers on their wheels and working together. The first and most important resource the project will use is ROS. ROS is a tool that is made to interface well with robotics, offering a multitude of tools to help assist in the development process. Some aspects ROS assists in are “services you would expect from an operating system, including hardware abstraction, low-level device control, implementation of commonly-used functionality, message-passing between processes, and package management”\cite{RN200}, essentially the operating system of ROS help handle some challenges one would face in a typical embedded process. There are different versions of ROS, in our case, we will be deploying ROS2 Humble Hawksbill. As for the reason why the team is deploying Humble, it is supported on Ubuntu Linux Jammy Jellyfish version 22.04 \cite{RN201}, which is the environment currently being used for the project. Another advantage of ROS is that everything is abstracted to a concept of a Node.
+\begingroup
+\fontsize{5.70pt}{10pt}\selectfont
+\begin{verbatim}  
+	rosidl_runtime_c__String__init(odom_msg_.child_frame_id));
+	odom_msg_.child_frame_id = 
+	micro_ros_string_utilities_set(odom_msg_.child_frame_id, "base_footprint");  
+\end{verbatim}  
+\endgroup
 
-The official ROS documentation refers to Nodes as having a “modular purpose” \cite{RN202} and being capable of sending/receiving data from other nodes via Topics and Service. These Nodes are developed in C++ or Python. It is easy to get lost in all the specifics of ROS, luckily the developers do have tutorials and other documentation on the tool itself for individuals to get started(plus ROS is open source meaning there are alternatives even if the documentation is not useful \cite{RN200}). With the assistance of ROS implementing control/deploying the rovers will be simplified to focus on other aspects of the project. 
-Although using ROS enables easier deployment of the tools needed for the project, simulations are an integral part of ensuring that the rovers operate as intended. To create simulations of the swarm, Gazebo will address this issue. Gazebo is 3D simulation software that integrates well with ROS\cite{RN202}. Like the ROS documentation Gazebo also offers some tutorials on getting started with it and how to operate it with ROS. Gazebo will allow us to test the rover code before programming and physically testing the rover themselves. This now leads to the question of how the rovers physically look and operate.
+Another example is the pinging of the Microros agent. In the original Linorobot's state machine states are Wait for Agent, Agent available, Agent Connected, and Agent Disconnected. We found that in the state Wait for the Agent, struggles to ping the host machine agent and gets stuck in that state. When that state is removed and goes straight for Agent Connected, the code is executed without issue. A delay is also placed in the Agent Connected so that the Watchdog timer does not trigger when the rover is idle for long periods. The last pitfall with Microros that the team discovered was the limitation with nodes.
 
-\subsubsection{Hardware}
-For the hardware, let's first look at the brains of the rover, the development board. For the project, the rovers will use either the ESP32-DevKitC-32E and or ESP32-DevKitC-32UE by Espressif (the difference between the two is 32E uses a PCB antenna and 32UE uses an IPEX antenna \cite{RN203}). To list some of the specs of the device it has 448 KB ROM, 520 KB SRAM, it has WiFi, Bluetooth, UART, SPI, I2C, GPIO, ADC, and a lot of other features \cite{RN203}. However, this is all trivial when other boards also offer these features. Ultimately, the reason we are going to use the ESP32 is due to ROS being used to develop the rovers. ROS does not work with any microcontroller and needs specific ones to be able to operate. Essentially, these boards take advantage of “FreeRTOS, one of the three RTOSes officially supported by the micro-ROS project, which is natively used by this family of boards, and supports the latest Foxy release of ROS 2” \cite{RN204} and this does work with ROS 2 Humble version as well \cite{RN205}. For what is needed for the project these boards are perfect and will allow us to control the swarm of rovers via WiFi. There is also a chance that the project will also deploy a Raspberry PI 3 or 4 to be the central server, but given that at the time of writing, there is a supply chain issue with them, the central server will run on our machines/laptops. Now let us look at the rest of the body of the rover.
-One of the challenges of getting the rover to work well together is to ensure that the rovers move predictably and accurately. To get the rovers to move there are a couple of items that are needed to do this correctly. The motors that are going to be used are simple DC Electric TT gear motors, these are cheap motors that are generally used in Arduino projects. However, the issue with these motors is that they do not have any form of encoding/giving feedback for knowing motor speed. To solve the problem of a lack of feedback, use of IR infrared slotted optical optocoupler module photo interrupter sensor, these are rotary encoders that can be attached to the motors for information on the motor speed and direction. Finally, with our custom H-bridge motor driver, we can use a PWM from the ESP32 to control the speed and direction of the motors. The three of these combined will allow us to accurately control and move the rovers despite the difference between motors. Then with the integration of a 2D lidar sensor, the rover will have the ability to perceive the world around them and avoid obstacles and other rovers. All of this, including the micro-controller, is being powered through a Lipo battery that can provide enough current and power to the system. Here is a wiring schematic of the rovers.
+ROS and Microros allow Nodes to have multiple publishers and subscribers, but the Microros library for ESP32 has the default max for using nodes to one node, two subscribers, and two publishers. Luckily, these are not hard-set max values and require you to go to the library’s colcon.meta file to change the max value then clean/recompile the library.
 
-Fig 3. displays the hardware we will be using for our rovers and approximate cost for a total of 3 rovers. The total comes to be \$344.65 and each rover comes to be \$114.88 all before tax and shipping cost. As of right now this isn't all of our parts and we will be adding and removing components as we test each of them, as we might find a less expensive component or a better alternative component for our needs throughtout the summer.
+An unexpected pitfall encounter was with the WiFi router used in the project. Essentially, the firewall on the router would block the microcontroller from initializing a ROS network if the controller is reset more than three times. To circumvent this issue, power cycle the router or turn off the firewall on the router. Turning off the firewall allowed for multiple resets of the board, but it still can/will get stuck with initializing the network if done too often.
+ 
+Refactoring the lidar code base from C++ to C posed significant challenges, primarily due to the use of a different microcontroller with an entirely distinct framework. While working on the Pico, the capability to read a single byte at a time was feasible. However, transitioning to the Espressif framework posed a problem as it inherently reads multiple bytes, lacking the option to read singular bytes using USART. Also, identifying available USART pins on the microcontroller involved substantial trial and error. However, implementing the lidar onto the microcontroller presented numerous difficulties. The initial challenge surfaced as a watchdog warning during the first trial, triggered because the main system lacked resources to oversee its overall functionality, attributable to a while loop that didn't stop. The remedy involved incorporating a delay of 5 ticks at the end of the loop, to allow the system to check it’s status.
 
-\section{Discussion}
-Testing will be done regularly from the first-day our components arrive to assure quality and functionality. As we assemble each component together, testing will help in debugging and localizing the issue in the system. Creating tests for each component helps with creating a good understanding on how that device individually works as well as how it interacts with other devices and software. On the topic of software, testing is of critical importance, without testing the software integration could lead to unforeseen behavior within the system as a whole. If our tests were done correctly, on demo day it will present our flawless creation, the freedom rover units to the world.
-\section{Demo Description} 
-Our goal is to demonstrate one of these three demos on demo day. The First demo shows each drone/rover coordinating with one another to align themself to make a letter. An example of this demo: from the server we give the task of creating the letter ‘L’, with 5 drones scattered on the map, each rover will represent a pixel and will move to that spot, as seen in Fig.4. If there were two rovers that are the same distance away from a spot, one rover will have higher priority over the other and the rover with the higher priority will get that spot. As for the other rover it will go to the next closest open spot, as seen in Fig.5. Another option for the First demo, is that each rover will have multiple different LED lights to make a light show on the ground.
+Subsequently, encounter issues while retrieving the complete stack of data from the lidar became apparent. Although we were receiving information from the serial line, our code expected the first byte read was the start of the frame, which was consistent only when starting the LiDAR to send data. After a while, the alignment in data we were reading was inconsistent. The solution to ensure consistent data framing,was to forcefully sending the character 'b', which is used to start sending data to the microcontroller. This was called in the polling method within our code, please refere to Appendix A line 1.
 
-The Second demo is to have the rovers coordinate with one another to move an object from one location to another. An example: 3 rovers scattered around the map, as seen in Fig. 6. The map is 5’ by 5’, where (0,0) is located at the bottom left corner and (5,5) is located at the top right corner. Each rover get the task to move a cardboard box from (1,5) and (4,5) to (0,5). All 3 rovers will communicate and align themselves around the closest box, to move it to the said location, which is seen in Fig. 6. Once done, they will wait for their next instruction which may be to move it to a different location. 
+Further complexity arose when attempting to publish lidar data to our local host computer. It was able to publish data in it’s own project folder, however integration into our primary project file alongside other components resulted in the system to fail. The underlying issue stemmed from microROS, which imposed a limit on node creation set by a configuration file. After extensive research lasting 2-3 weeks, the solution emerged: modifying the configuration file.
 
-As for our last demo, the Third demo shows drones moving in a line around the map. For example: there are 2 tasks, the first task is to follow behind another drone and the second task is to move around the map. The second task will be given to one rover only and the first task will be given to all the other drones on the map. In this demo, there are 5 drones scattered throughout map and drone named \#2 will get the second task. As for the other Drones: \#1,\#3,\#4,\#5, they will get the first task. Let’s say the order of drone conga line is : \#2,\#3,\#1,\#5,\#4. If we were to separate \#1 from the conga line and place it elsewhere on the map, it will find its way behind the last rover in the congo line which in this case is \#4. Thus conga line will look like: \#2,\#3,\#5,\#4,\#1.
+\clearpage
+\section{Appendices}
+\begin{center}APPENDIX A
+\end{center}
+\begin{center}Inside the Lidar Polling Method
+\end{center}
+\begin{lstlisting}[frame=leftline, breaklines=true, numbers=left, stepnumber=1, numbersep=5pt]
+error_tx = uart_write(test_str);
 
-As a team we have decided to focus on demonstrating the second demo for demo day in December of 2023. Our goal is to demonstrate the use of a decentralized system, where each rover will be able to do their individual task and when needed to communicate with each other to complete the set task as a swarm. Presenting the second demo, showcases this achievement.
+while(!successful_scan){
+    uart_read_size = uart_read(data);
+        
+    if(uart_read_size > 0){
+        sync[0] = data[0];
+        sync[1] = data[1];
+    }
+    
+    //First capture the start byte of a frame:
+    //Once start byte captured, read remaining frame into array:
+    if (sync[0] == 0xFA && sync[1] == 0xA0) {
+        frame[0] = 0xFA;
+        frame[1] = 0xA0;
+        for (int v = 2; v <= 2520; v++) {
+            frame[v] = data[v]; //copying the data from data array to frame
+        }
+        ready = true;
+    }  
+    
+    //Once frame captured, extract range/angle and convert to x/y:
+    if (ready) {
+        lidar_msg_->angle_increment = (2.0*M_PI/360.0);
+        lidar_msg_->angle_min = 0.0;
+        lidar_msg_->angle_max = 2.0 * M_PI - lidar_msg_->angle_increment;
+        lidar_msg_->range_min = 0.12;
+        lidar_msg_->range_max = 3.5;
+        
+        for (uint16_t i = 0; i < 2520; i = i + 42) {
+            if (frame[i] == 0xFA && frame[(i + 1)] == 0xA0 + (i / 42)) {                    
+                good_sets++;
+                motor_speed += (frame[i+3] << 8) + frame[i+2]; //accumlate count for avg. time increment
+                for (uint16_t j = i + 4; j < i + 40; j = j + 6) {
+                
+                    index = 6*(i/42) + (j-4-i)/6;
 
-\section{Mitigation and Risks}
-As with any project, there are challenges and risks that need to be addressed as the project progresses. The first is the issue of what happens when one breaks or gets to us broken. To solve this issue spare parts will be ordered as a precaution when the team has more money available. Parts are going to be tested to ensure they are working properly and safe handling of said parts to avoid accidental breaking. The simulation aspect of the rover brings with it a unique set of risks, if the teams spend too much time in simulation, unforeseen issues may occur when trying to translate/test in bulk with the physical rovers. To avoid this, incremental testing will be done to ensure that each step of the process is working. Time is also a big risk, with a project as large as this one, the team plans on meeting and working over the summer to ensure that the project will be finished in time. Finally, there is the issue of the custom H-bridge and power circuit PCB. If those fail and cannot find the issue with them we may resort to premade circuit board vendors from places like Adafruit and Digikey. Overall, the biggest issue/risk of the project is taking good care of the parts and ensuring they work because devices such as the 2D Lidar and Lipo batteries are expensive. We would rather not have to buy more than what we need.
+                    uint8_t rangeA = frame[j + 2];
+                    uint8_t rangeB = frame[j + 3];
+                    uint8_t rangeC = frame[j];
+                    uint8_t rangeD = frame[j+1];
 
-\section*{Acknowledgement}
-Big Thanks to Prof. Daniel Drew (University of Utah) for valuable discussion and insight; Many Thanks Prof. Erik Brunvand (University of Utah) for feedback and insight. Thanks to GAZEBO tutorials for making it easy to follow instructions for setup.
+                    uint16_t range = (rangeB << 8) + rangeA;
+                    uint16_t intensity = (rangeD << 8) + rangeC; 
 
+                    lidar_msg_->ranges.data[359-index] = range/1000.0;
+                    lidar_msg_->intensities.data[359-index] = intensity;
+                }
+            }
+        }
+        
+        rpms = motor_speed / good_sets / 10;
+        lidar_msg_->time_increment = (float)(1.0 / (rpms*6));
+        lidar_msg_->scan_time = lidar_msg_->time_increment * 360;
+
+        ready = false;
+        num_of_times_it_made_it++;
+        successful_scan = true;
+    }  
+    else {
+        sync[0] = 0;
+        sync[1] = 0;
+        did_not_work++;
+        }
+
+    if(did_not_work >= 5 )
+    {
+        num_reset++;
+        ESP_LOGI(TAG_LIDAR, "Number of resets of lidar: %d\n Current value of conversions: %d", num_reset, num_of_times_it_made_it);
+        vTaskDelay(5);
+        free(data);
+        return false;                      
+    }
+}
+
+free(data);
+return successful_scan;
+
+\end{lstlisting}
+
+\begin{center}APPENDIX B
+\end{center}
+\begin{center}FRU-bot Power Interface Board
+\end{center}
+\begin{figure}[H]
+	\includegraphics[width=\linewidth]{./figs/circuit.png}
+	\caption{Power interface board (PIB) with hardware interfaces. FRU-bot's PIB has suport for 3.3V, 5V, and 7.4V supplies. A 4A fuse and flyback diodes provide protection against over-current and reverse voltage damage. The LED light and voltage divider sensor for battery voltage monitoring work in unison to prevent battery cell damage.}
+\end{figure}
+
+\begin{center}APPENDIX C
+\end{center}
+\begin{center}Launching FRU-bot Using the Bringup Script
+\end{center}
+\begin{lstlisting}[frame=leftline, breaklines=true, numbers=left, stepnumber=1, numbersep=5pt]
+# Starts all nodes for a simulated FRU-bot instance in namespace 'FRU_bot0' with remappings of state publisher (set sim:=false for physical robot).
+# Starts Robot State Publisher, Gazebo server and client, rviz, and robot localization toolbox nodes.
+ros2 launch fru_bot_bringup bringup.launch.py use_rviz:=true sim:=True use_ns:=True idx:=0 remap_tf:=True
+\end{lstlisting}
+
+\begin{center}APPENDIX D
+\end{center}
+\begin{center}Multi-Agent Gazebo Simulation
+\end{center}
+\begin{figure}[H]
+	\includegraphics[width=\linewidth]{./figs/multi_bots_viz.png}
+	\vspace{4mm}
+	\includegraphics[width=\linewidth]{./figs/multi_bots_sim.png}
+	\vspace{4mm}
+	\includegraphics[width=\linewidth]{./figs/multi_bots_nodes.png}
+	\caption{Visualization of $FRU \_ bot1$ at the top, and the same view in the simulation gazebo environment at the bottom with the other two agents in the center image. The bottom image features the dependency graphs of two out of the three total agents.}
+\end{figure}
 
 \nocite{*}
-\bibliographystyle{ieeetran}
-\bibliography{citations}% Produces the bibliography via BibTeX.
+\bibliographystyle{./IEEEtran}
+\bibliography{./citations.bib}% Produces the bibliography via BibTeX.
 \vspace{12pt}
 
 \end{document}
